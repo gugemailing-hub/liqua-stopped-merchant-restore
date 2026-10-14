@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小POS无交易停用商户自动启用 · 原型</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f4f5f7; color: #1f2329;
+         font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  header { background: #fff; border-bottom: 1px solid #e5e6eb; padding: 12px 24px; font-size: 13px; color: #4e5969; }
+  header b { color: #1f2329; font-size: 15px; margin-right: 10px; }
+
+  nav { display: flex; gap: 22px; flex-wrap: wrap; padding: 14px 24px 0; }
+  .grp { display: flex; align-items: center; gap: 8px; }
+  .glabel { font-size: 12px; font-weight: 600; color: #d46b08; }
+  nav button { font-size: 13px; padding: 6px 14px; border-radius: 6px; background: #fff; cursor: pointer;
+               border: 1px solid #fa8c16; color: #d46b08; }
+  nav button.on { background: #fa8c16; color: #fff; }
+
+  main { display: flex; gap: 28px; padding: 14px 24px 40px; align-items: flex-start; flex-wrap: wrap; }
+  .stage { width: 377px; }
+  .statebar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .statebar span { font-size: 12px; color: #86909c; align-self: center; }
+  .statebar button { font-size: 12px; padding: 4px 10px; border: 1px solid #c9cdd4; border-radius: 14px;
+                     background: #fff; color: #4e5969; cursor: pointer; }
+  .statebar button.on { border-color: #2f6fe4; background: #e8f0fe; color: #2f6fe4; }
+  #bars { margin-bottom: 6px; min-height: 28px; }
+
+  /* 手机外框：弹窗、toast 以它为定位基准，滚动区不设 position */
+  .phone { position: relative; width: 377px; height: 720px; background: #fff; border: 1px solid #d0d3d9;
+           border-radius: 26px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+  .ptop { height: 46px; display: flex; align-items: center; justify-content: space-between;
+          padding: 0 14px; border-bottom: 1px solid #f0f0f0; font-size: 15px; background: #fff; }
+  .ptop .nav-btn { width: 30px; font-size: 20px; color: #4e5969; cursor: pointer; user-select: none; }
+  .ptop .nav-btn.r { text-align: right; font-size: 16px; }
+  .pbody { height: calc(100% - 46px); overflow-y: auto; padding: 14px; }
+
+  /* 公众号首页：按现状截图还原 */
+  .pbody.home { padding: 0 0 16px;
+    background: linear-gradient(180deg, #4d98f6 0, #86bdfa 150px, #dcebfd 260px, #f2f5fa 360px) #f2f5fa; }
+  .todo { display: flex; align-items: center; gap: 8px; height: 40px; margin: 10px 12px 0; padding: 0 12px;
+          border-radius: 10px; background: rgba(238,245,255,.96); border: 1px solid #fff; font-size: 14.5px;
+          color: #1d2b4f; cursor: pointer; }
+  .todo .ii { width: 20px; height: 20px; border-radius: 50%; background: #2f7cf6; color: #fff; font: italic 700 13px/20px Georgia, serif;
+              text-align: center; flex-shrink: 0; }
+  .todo .ar { margin-left: auto; color: #8aa0c2; font-size: 20px; }
+  .me { display: flex; align-items: center; gap: 12px; padding: 16px 14px 14px; }
+  .me .ava { width: 58px; height: 58px; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0;
+             background: linear-gradient(135deg, #a7b1c2, #5f6b7d); }
+  .me .who { flex: 1; min-width: 0; color: #fff; }
+  .me .nm { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .me .no { display: flex; align-items: center; font-size: 13px; margin-top: 5px; opacity: .95; }
+  .me .add { flex-shrink: 0; background: #fff; color: #2b6cf0; font-size: 14px; padding: 7px 14px; border-radius: 18px; }
+  .tag { display: inline-flex; align-items: center; margin-left: 8px; padding: 1px 8px; font-size: 12px; line-height: 18px;
+         color: #f53f3f; background: #fff; border-radius: 10px; }
+  .todo.off { cursor: default; }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 12px; }
+  .quick div { height: 80px; border-radius: 14px; background: rgba(255,255,255,.82); border: 1px solid #fff;
+               display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; }
+  .ic { width: 36px; height: 36px; border-radius: 11px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+  .ic svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); row-gap: 16px; margin: 10px 12px 0; padding: 16px 2px 10px;
+          background: #fff; border-radius: 14px; }
+  .grid div { position: relative; display: flex; flex-direction: column; align-items: center; font-size: 12.5px; color: #1f2329; }
+  .grid .ic { width: 34px; height: 34px; border-radius: 50%; }
+  .badge { position: absolute; top: -10px; left: 50%; font-size: 10px; color: #fff; padding: 0 5px; line-height: 15px;
+           background: linear-gradient(90deg, #ff6b6b, #f5222d); border-radius: 8px 8px 8px 0; white-space: nowrap; }
+  .banner { position: relative; height: 112px; margin: 12px 12px 0; padding: 10px 14px; border-radius: 10px; overflow: hidden; color: #fff;
+            background: linear-gradient(100deg, #ff8a3d, #f5392d 55%, #ff6d3a); }
+  .banner .bt { display: inline-block; font-size: 10px; padding: 0 8px; line-height: 16px; border-radius: 8px; background: rgba(255,255,255,.28); }
+  .banner .bh { font-size: 27px; font-weight: 800; letter-spacing: 1px; margin: 6px 0 6px; text-shadow: 0 2px 0 rgba(160,20,0,.35); }
+  .banner .bd { display: inline-block; font-size: 10.5px; padding: 1px 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,.7);
+                background: rgba(170,10,0,.3); }
+  .banner svg { position: absolute; right: 12px; top: 22px; width: 64px; height: 64px; fill: none; stroke: rgba(255,255,255,.85); stroke-width: 1.6; }
+  .sec { font-size: 17px; font-weight: 700; margin: 18px 14px 10px; }
+  .news { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 12px; }
+  .news .img { height: 118px; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-align: center;
+               color: #fff; font-size: 26px; font-weight: 800; letter-spacing: 3px; line-height: 1.3; }
+  .news .img.s { font-size: 18px; letter-spacing: 1px; }
+  .news .cap { font-size: 13px; line-height: 1.45; margin: 6px 0 4px; }
+
+  /* 门店管理：按现状截图还原；底部按钮以手机外框为定位基准 */
+  .pbody.stores { background: #f5f5f5; padding: 12px 10px 90px; }
+  .seg { display: flex; background: #ececec; border-radius: 12px; padding: 4px; margin-bottom: 12px; }
+  .seg div { flex: 1; text-align: center; padding: 9px 0; font-size: 16px; font-weight: 600; color: #333; border-radius: 9px; }
+  .seg .on { background: #fff; color: #1f6ff2; }
+  .scard { position: relative; background: #fff; border: 1px solid #eceef2; border-radius: 10px; padding: 18px 16px 14px;
+           margin-bottom: 10px; font-size: 15px; color: #333; }
+  .scard.cur { border-color: #4a90f5; }
+  .scard .corner { position: absolute; right: 0; top: 0; background: #d9e8ff; color: #1f6ff2; font-size: 13px; line-height: 22px;
+                   padding: 0 8px; border-radius: 0 9px 0 10px; }
+  .scard .l1 { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .scard .pt { font-size: 13px; color: #1f6ff2; border: 1px solid #1f6ff2; padding: 0 4px; line-height: 18px; }
+  .scard .sn { font-size: 17px; font-weight: 700; color: #222; }
+  .scard .nb { font-size: 16px; font-weight: 700; color: #222; }
+  .scard .dm, .scard .st { font-size: 11px; line-height: 18px; padding: 0 5px; border-radius: 2px; white-space: nowrap; }
+  .scard .dm { color: #777; background: #e3e5e8; }
+  .scard .st { color: #f53f3f; background: #fff1f0; }
+  .scard p { margin: 8px 0 0; }
+  .scard p .st { margin-left: 8px; vertical-align: 1px; }
+  .pfoot { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 10px 16px; background: #f5f5f5; }
+  .pfoot div { background: #1677ff; color: #fff; text-align: center; font-size: 16px; padding: 13px 0; border-radius: 24px; }
+
+  /* 标注：红色虚线框 = 新增，橙底 = 调整 */
+  .mark-add { outline: 1.5px dashed #f5222d; outline-offset: 2px; }
+  .mark-mod { background: #fff7e6; outline: 1px dashed #fa8c16; outline-offset: 2px; }
+
+  .mask { position: absolute; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
+  .dialog { width: 270px; background: #fff; border-radius: 12px; overflow: hidden; text-align: center; }
+  .dialog .msg { padding: 26px 18px 22px; font-size: 15px; line-height: 1.6; }
+  .dialog .ops { display: flex; border-top: 1px solid #f0f0f0; }
+  .dialog .ops div { flex: 1; padding: 12px 0; font-size: 15px; cursor: pointer; }
+  .dialog .ops div + div { border-left: 1px solid #f0f0f0; color: #2f6fe4; font-weight: 600; }
+  .spin { width: 34px; height: 34px; margin: 0 auto 12px; border: 3px solid #e5e6eb; border-top-color: #2f6fe4;
+          border-radius: 50%; animation: rot .8s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .toast { position: absolute; left: 50%; top: 48%; transform: translateX(-50%); background: rgba(0,0,0,.78);
+           color: #fff; font-size: 14px; padding: 10px 16px; border-radius: 8px; white-space: nowrap; }
+
+  /* 收款终端 */
+  .pos { width: 320px; background: #e9eaed; border: 1px solid #d0d3d9; border-radius: 22px; padding: 26px 22px 30px; }
+  .screen { background: #cfe8fb; border-radius: 6px; padding: 14px 10px 16px; text-align: center; font-family: "SimHei", sans-serif; }
+  .screen .head { background: #1f6fd0; color: #fff; font-size: 14px; padding: 3px 0; margin: -4px -2px 14px; }
+  .screen .x { width: 38px; height: 38px; border-radius: 50%; background: #d93026; color: #fff;
+               font-size: 22px; line-height: 38px; margin: 0 auto 12px; }
+  .screen .l1 { color: #c0392b; font-size: 13px; }
+  .screen .l2 { font-size: 19px; font-weight: 700; margin: 6px 0; padding: 2px 0; letter-spacing: 1px; line-height: 1.4; }
+  .screen .l3 { font-size: 13px; }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 20px; }
+  .keys div { height: 30px; border-radius: 6px; background: #5c6066; }
+
+  .notes { flex: 1; min-width: 340px; max-width: 660px; background: #fff; border: 1px solid #e5e6eb;
+           border-radius: 10px; padding: 16px 20px; font-size: 13px; line-height: 1.8; }
+  .notes h3 { font-size: 15px; margin: 0 0 8px; }
+  .notes h4 { font-size: 13px; margin: 14px 0 4px; color: #1f2329; }
+  .notes ol { margin: 0; padding-left: 18px; }
+  .notes table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+  .notes th, .notes td { border: 1px solid #e5e6eb; padding: 5px 8px; text-align: left; vertical-align: top; }
+  .notes th { background: #f0f2f5; }
+  .notes .pend { color: #d46b08; }
+  .legend { font-size: 13px; color: #1f2329; margin: 0 0 12px; padding: 8px 12px; background: #f7f8fa; border-radius: 6px; }
+  .legend span { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin: 0 5px 0 14px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header><b>小POS无交易停用商户自动启用</b>原型 V1.9 · 更新 2026-10-14</header>
+
+<nav>
+  <div class="grp">
+    <span class="glabel">现有页面改动 3 个</span>
+    <button data-tab="pos">收款终端提示</button>
+    <button data-tab="home">立刷公众号首页</button>
+    <button data-tab="stores">门店管理</button>
+  </div>
+</nav>
+
+<main>
+  <section class="stage">
+    <div id="bars"></div>
+    <div id="device"></div>
+  </section>
+  <aside class="notes" id="notes"></aside>
+</main>
+
+<script>
+var STORE = { name: '鑫隆便利店', no: 'YME000000001' };
+
+var SELF = '无交易 / 正常停用';
+var PEND = '无交易 / 正常停用（审核中）';
+var OTHER = '资料整改 / 风险 / 渠道整改 / 类型为空';
+var NONE = '无停用';
+var REJ = '无交易 / 正常停用（审核不通过）';
+var HOME_STATES = [SELF, PEND, REJ, OTHER, NONE];
+var AUDITS = ['关闭（自动通过）', '开启（人工审核）'];
+var RESULTS = ['成功', '失败', '网络超时'];
+var POS_STATES = ['左端停用', '已注销', '银联右端停用'];
+
+var app = { tab: 'home', homeState: SELF, audit: AUDITS[0], result: '成功', posState: POS_STATES[0],
+            stack: ['home'], dialog: '', toast: '' };
+var timers = {};
+
+// 首页图标（白色线条图形，底色按现状截图取色）
+var SVG = {
+  doc: '<rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/>',
+  gift: '<rect x="4" y="10" width="16" height="10" rx="1"/><path d="M3 10h18M12 10v10M12 10C10 5 6 5 7 8s5 2 5 2 4 1 5-2-3-3-5 2"/>',
+  user: '<circle cx="12" cy="9" r="4"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>',
+  bot: '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9.5 13.5v1M14.5 13.5v1"/>',
+  store: '<path d="M4 10l2-5h12l2 5M5 10v9h14v-9M10 19v-5h4v5"/>',
+  yen: '<path d="M7 5l5 6 5-6M12 11v8M8 13h8M8 16h8"/>',
+  card: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 14h4"/>',
+  calc: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"/>',
+  head: '<path d="M5 14v-2a7 7 0 0 1 14 0v2"/><rect x="4" y="13" width="4" height="6" rx="1"/><rect x="16" y="13" width="4" height="6" rx="1"/>',
+  ticket: '<path d="M4 8h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/>',
+  bolt: '<path d="M13 3L6 14h5l-1 7 7-11h-5z"/>',
+  bag: '<path d="M8 8L6 4h12l-2 4M8 8c-3 3-4 6-4 8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4c0-2-1-5-4-8zM10 14h4M12 12v5"/>'
+};
+function ic(k, bg) { return '<span class="ic" style="background:' + bg + '"><svg viewBox="0 0 24 24">' + SVG[k] + '</svg></span>'; }
+
+var QUICK = [['doc', '#3d8cff,#1f62f0', '账单明细', '#2b6de8'], ['gift', '#ffc23d,#ff9000', '福利专区', '#e8890c'],
+             ['user', '#ff9a5a,#ff5a1f', '个人中心', '#e8641c'], ['bot', '#5f9bff,#4a5cf0', 'AI客服', '#2b6de8']];
+var GRID = [['store', '#4fa3ff,#2a74f5', '我的门店'], ['yen', '#3ed08a,#12a85a', '我的额度'], ['card', '#a58bff,#6f56f0', '卡包管理'],
+            ['calc', '#5aa8ff,#2f7cf6', '我的设备'], ['head', '#3fd18c,#14a95e', '在线客服'], ['ticket', '#ffb347,#ff7a1a', '达标与优惠'],
+            ['bolt', '#5b9dff,#2563eb', '免费充电', '立刷专享'], ['bag', '#ff8a6b,#f2453d', '超值权益包']];
+
+function homeHtml() {
+  var stopped = app.homeState !== NONE;
+  var html = '';
+  var tag = stopped ? '<span class="tag mark-add">商户已停用</span>' : '';
+  if (app.homeState === SELF || app.homeState === REJ) {
+    html += '<div class="todo mark-add" data-act="ask"><span class="ii">i</span><span class="tx">' +
+            (app.homeState === SELF ? '当前商户已停用，请点击恢复' : '商户启用申请未通过，请重试或联系客服') + '</span><span class="ar">›</span></div>';
+  } else if (app.homeState === PEND) {
+    html += '<div class="todo mark-add off"><span class="ii">i</span><span>商户启用申请审核中，通过后可恢复启用</span></div>';
+  }
+  html += '<div class="me"><div class="ava"></div><div class="who"><div class="nm">' + STORE.name + '</div>' +
+          '<div class="no">' + STORE.no + tag + '</div></div>' +
+          '<div class="add" data-go="stores">新增门店</div></div>';
+  html += '<div class="quick">' + QUICK.map(function (q) {
+    return '<div style="color:' + q[3] + '">' + ic(q[0], 'linear-gradient(135deg,' + q[1] + ')') + q[2] + '</div>';
+  }).join('') + '</div>';
+  html += '<div class="grid">' + GRID.map(function (g) {
+    return '<div>' + (g[3] ? '<span class="badge">' + g[3] + '</span>' : '') + ic(g[0], 'linear-gradient(135deg,' + g[1] + ')') + g[2] + '</div>';
+  }).join('') + '</div>';
+  html += '<div class="banner"><span class="bt">2026第三期</span><div class="bh">立刷笔笔有积分</div>' +
+          '<span class="bd">活动时间：2026年10月9日-2026年12月31日</span><svg viewBox="0 0 24 24">' + SVG.gift + '</svg></div>';
+  html += '<div class="sec">卡圈热点</div><div class="news">' +
+          '<div><div class="img" style="background:linear-gradient(160deg,#1846c8,#1f5cf0)">郑重声明</div>' +
+          '<div class="cap">关于不法分子冒用嘉联名义实施非法营销的严正声明</div></div>' +
+          '<div><div class="img" style="background:linear-gradient(160deg,#1a4bd6,#2a6bf5)">重要通知</div>' +
+          '<div class="cap">关于商户入网规范与终端升级要求通知</div></div>' +
+          '<div><div class="img s" style="background:linear-gradient(160deg,#2b3fd6,#5a3fe0)">信用卡销卡误区<br>你知道有哪些吗？</div></div>' +
+          '<div><div class="img s" style="background:linear-gradient(160deg,#2a6df5,#4aa0ff)">信用卡风控<br>实用解除技巧</div></div></div>';
+  return html;
+}
+
+function storesHtml() {
+  var tag = app.homeState !== NONE ? '<span class="st mark-add">商户已停用</span>' : '';
+  return '<div class="seg"><div class="on">立刷电签</div><div>支付宝碰一下</div></div>' +
+    '<div class="scard cur"><span class="corner">当前</span><div class="l1"><span class="pt">云电签</span>' +
+    '<span class="sn">' + STORE.no + '</span><span class="dm">休眠</span></div>' +
+    '<p>门店名称：' + STORE.name + tag + '</p><p>注册时间：2023-09-13 19:39:49</p></div>' +
+    '<div class="scard"><div class="l1"><span class="nb">暂未绑定设备</span></div>' +
+    '<p>门店名称：惠民日用品店</p><p>注册时间：2023-11-24 11:54:54</p></div>';
+}
+
+var PAGES = {
+  home: { title: '立刷电签版', cls: 'home', render: homeHtml },
+  stores: { title: '门店管理', cls: 'stores', render: storesHtml, foot: '<div class="pfoot"><div>新增门店</div></div>' }
+};
+
+var DIALOGS = {
+  confirm: '<div class="msg">确认恢复当前商户？</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">确认恢复</div></div>',
+  loading: '<div class="msg"><div class="spin"></div>正在恢复，请稍候</div>',
+  fail: '<div class="msg">恢复失败，请稍后重试</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">重试</div></div>',
+  timeout: '<div class="msg">网络异常，请稍后重试</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">重试</div></div>'
+};
+
+var NOTES = {
+  stores: '<h3>门店管理（改动页）</h3>' +
+    '<ol><li>入口：首页【新增门店】→ 门店管理。</li>' +
+    '<li>门店卡的<b>门店名称后面</b>新增「商户已停用」标签，与现有「休眠」标签同尺寸、红色；<b>只展示、不可点</b>。</li>' +
+    '<li>不放第 1 行：第 1 行已有产品标签 + 机身号 + 休眠，再加一个会压到当前门店右上角的「当前」角标；放门店名称后也不会被看成机具停用。</li>' +
+    '<li>判断口径与首页标签相同：该门店子商户的左端或路由的银联右端停用（任一停用类型）即展示。</li>' +
+    '<li><b>每张门店卡都标</b>，按各自门店判断，未绑定设备的门店卡同样放在门店名称后面；门店名称过长时标签自动换到下一行。</li>' +
+    '<li>本页不提供恢复操作，恢复只从首页待办进入，且只针对当前门店。</li></ol>' +
+    '',
+  pos: '<h3>收款终端提示（改动页）</h3>' +
+    '<ol><li>交易核心只区分「停用」「注销」两类提示，不按停用类型细分；响应码仍为 03。</li>' +
+    '<li>终端屏<b>每行最多 10 个字</b>。</li>' +
+    '<li><b>左端停用</b>：第 2 行改为两行「商户已停用 / 请登录公众号处理」（5 字 + 8 字）。</li>' +
+    '<li><b>已注销</b>：第 2 行改为「商户已注销」，原为「商户已注销或停用」。</li>' +
+    '<li><b>银联右端停用</b>：仍提示「无效商户」，本期不改。该文案还覆盖银联侧拒绝，改了会误导。</li>' +
+  home: '<h3>立刷公众号首页（改动页）</h3>' +
+    '<ol><li>前置：商户登录立刷公众号，默认进入<b>上次切换到的门店</b>（现有逻辑）。</li>' +
+    '<li>系统只查<b>当前门店子商户</b>的左端状态，以及它路由的银联右端状态；<b>不处理其它门店</b>。切换门店后按新门店重新判断。</li>' +
+    '<li>停用时都显示「商户已停用」标签，<b>只展示、不可点击</b>；能自助恢复的才显示首页待办，恢复操作只从待办进入：</li></ol>' +
+    '<table><tr><th>当前门店子商户状态</th><th>商户已停用标签</th><th>首页待办</th></tr>' +
+    '<tr><td><b>无交易停用、正常停用</b>（左端，或路由的银联右端）</td><td>展示</td><td>「当前商户已停用，请点击恢复」→ 恢复弹窗</td></tr>' +
+    '<tr><td>同上，启用申请审核中（审核开关开启时）</td><td>展示</td><td>「商户启用申请审核中，通过后可恢复启用」（不可点）</td></tr>' +
+    '<tr><td>同上，启用申请审核不通过</td><td>展示</td><td>「商户启用申请未通过，请重试或联系客服」→ 点击弹恢复窗，可重新申请</td></tr>' +
+    '<tr><td>资料整改 / 风险 / 渠道整改停用、停用类型为空</td><td>展示</td><td>不展示</td></tr>' +
+    '<tr><td>无停用</td><td>不展示</td><td>不展示</td></tr></table>' +
+    '<h4>放在哪里（首页按现状还原，红色虚线框 = 新增）</h4>' +
+    '<table><tr><th>元素</th><th>位置</th><th>为什么放这里</th></tr>' +
+    '<tr><td>恢复待办</td><td>首页最顶部的待办条，<b>沿用现有待办条样式</b>，只新增一种文案</td>' +
+    '<td>现有首页已有这个位置（如「商户资料待完善」「您还未完成实名认证」），且待办条与门店栏可同屏，不新增组件</td></tr>' +
+    '<tr><td>商户已停用标签</td><td>门店栏第 2 行，<b>机身号后面</b>；文案写「商户已停用」，不写「已停用」，避免被理解成机具停用</td>' +
+    '<td>第 1 行门店名长度不固定，右侧还有【新增门店】按钮，放第 1 行会把门店名挤成省略号，而商户要靠门店名确认当前是哪个门店；第 2 行只有机身号，后面空余多</td></tr></table>' +
+    '<h4>恢复弹窗</h4>' +
+    '<table><tr><th>阶段</th><th>弹窗内容</th><th>说明</th></tr>' +
+    '<tr><td>确认</td><td>确认恢复当前商户？｜取消 / 确认恢复</td><td>—</td></tr>' +
+    '<tr><td>加载中</td><td>加载圈 + 正在恢复，请稍候</td><td>无按钮，防止重复提交</td></tr>' +
+    '<tr><td>成功（审核开关关闭）</td><td>关闭弹窗，toast「商户已启用，可重新交易」</td><td>标签与待办消失</td></tr>' +
+    '<tr><td>成功（审核开关开启）</td><td>关闭弹窗，toast「商户启用申请已提交，请等待审核」</td><td>进入审核中：待办不可点，防止重复申请</td></tr>' +
+    '<tr><td>失败</td><td>恢复失败，请稍后重试｜取消 / 重试</td><td>接口明确返回失败</td></tr>' +
+    '<tr><td>网络超时</td><td>网络异常，请稍后重试｜取消 / 重试</td><td>超过等待时长仍无结果；判定时长待定</td></tr></table>' +
+    '<ol><li>点「确认恢复」：对当前门店停用的左端和 / 或银联右端发起商户状态变更工作流，发起人为商户。</li>' +
+    '<li><b>审核开关（默认关闭）</b>：由后端配置控制，不做页面。关闭时工作流自动审核通过，直接启用；开启时流入人工审核，审核角色为审核专员4.0、风控运营岗，审核通过后启用。</li>' +
+    '<li>切换开关时，已进入人工审核的申请仍要审完，不随开关自动通过。</li>' +
+    '<li><b>审核不通过</b>：首页待办显示「商户启用申请未通过，请重试或联系客服」，点击弹恢复窗可再次申请，暂不限制申请次数。</li>' +
+    '<li><b>待办优先级</b>：恢复相关待办（请点击恢复 / 审核中 / 未通过）排第 1，优先于现有其它待办。</li>' +
+    '<li>首页待办按当前门店<b>最近一次启用申请</b>的状态展示：无申请 → 请点击恢复；审核中 → 审核中（不可点）；审核不通过 → 审核不通过，直到商户重新申请或门店被启用。</li>' +
+    '<li><b>识别记录</b>：启用了左端时，给该子商户对应的客户号补 2 条（二要素鉴权、三要素鉴权），识别时间晚于启用成功时间（启用成功时间 +1 秒）。只启用银联右端（左端本来没停用）、启用失败、审核不通过，都不补。</li>' +
+    '<li><b>重试要幂等</b>：超时时后台可能已经启用成功，重试遇到"已是启用"直接按成功返回；已有审核中的申请时直接返回审核中，不重复建工作流。关闭弹窗回首页时重新查询状态。</li>' +
+    '<li>左端启用、但路由的银联右端为无交易停用 / 正常停用时（含同人挂靠、跨人挂靠、电签升级户），同样展示。</li>' +
+    '<li>停用类型为空的不展示恢复入口。</li>' +
+    '<li>标签、待办文案不出现停用原因，不出现「风险」「申诉」字样。</li></ol>' +
+    '<h4 class="pend">待确认 / 待优化</h4><ol>' +
+    '<li>网络超时的判定时长：待定。</li>' +
+    '<li>商户已停用标签本期只展示；点击跳转（如进在线客服）待优化。</li>' +
+    '<li>资料整改停用的补资料页：立刷公众号目前没有，本期不做，待优化。</li>' +
+    '<li>账号已注销、登录失败的商户：待优化，本期不处理。</li>' +
+    '</ol>'
+};
+
+var LEGEND = '<div class="legend"><b>图例</b><span style="outline:1.5px dashed #f5222d"></span>红色虚线框 = 新增' +
+             '<span style="background:#fff7e6;outline:1px dashed #fa8c16"></span>橙底 = 调整</div>';
+
+function bar(label, list, cur, kind) {
+  return '<div class="statebar"><span>' + label + '：</span>' + list.map(function (s) {
+    return '<button data-' + kind + '="' + s + '"' + (s === cur ? ' class="on"' : '') + '>' + s + '</button>';
+  }).join('') + '</div>';
+}
+
+function pageKey() { return app.tab === 'pos' ? 'pos' : app.stack[app.stack.length - 1]; }
+
+function renderBars() {
+  var canApply = (app.homeState === SELF || app.homeState === REJ) && pageKey() === 'home';
+  var html = app.tab === 'pos' ? bar('状态', POS_STATES, app.posState, 'state')
+    : bar('当前门店', HOME_STATES, app.homeState, 'state') +
+      (canApply ? bar('审核开关', AUDITS, app.audit, 'audit') + bar('恢复结果', RESULTS, app.result, 'result') : '');
+  document.getElementById('bars').innerHTML = html;
+}
+
+function renderPos() {
+  var l2;
+  if (app.posState === '左端停用') l2 = '<div class="l2 mark-mod">商户已停用<br>请登录公众号处理</div>';
+  else if (app.posState === '已注销') l2 = '<div class="l2 mark-mod">商户已注销</div>';
+  else l2 = '<div class="l2">无效商户</div>';
+  return '<div class="pos"><div class="screen"><div class="head">消费</div><div class="x">✕</div>' +
+         '<div class="l1">交易失败，响应码03</div>' + l2 + '<div class="l3">请按【确认】返回</div></div>' +
+         '<div class="keys">' + new Array(17).join('<div></div>') + '</div></div>';
+}
+
+function renderPhone() {
+  var p = PAGES[app.stack[app.stack.length - 1]];
+  var back = app.stack.length > 1 ? '<span class="nav-btn" data-act="back">‹</span>' : '<span class="nav-btn"></span>';
+  var close = app.stack.length > 1 ? '<span class="nav-btn r" data-act="close">✕</span>' : '<span class="nav-btn r"></span>';
+  var dlg = app.dialog ? '<div class="mask"><div class="dialog">' + DIALOGS[app.dialog] + '</div></div>' : '';
+  var tst = app.toast ? '<div class="toast">' + app.toast + '</div>' : '';
+  return '<div class="phone"><div class="ptop">' + back + '<span>' + p.title + '</span>' + close + '</div>' +
+         '<div class="pbody ' + (p.cls || '') + '">' + p.render() + '</div>' + (p.foot || '') + dlg + tst + '</div>';
+}
+
+function render() {
+  document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === pageKey()); });
+  renderBars();
+  document.getElementById('device').innerHTML = app.tab === 'pos' ? renderPos() : renderPhone();
+  document.getElementById('notes').innerHTML = LEGEND + NOTES[pageKey()];
+}
+
+function resetPhone() {
+  clearTimeout(timers.load); clearTimeout(timers.toast);
+  app.stack = ['home']; app.dialog = ''; app.toast = '';
+}
+
+function showToast(text) {
+  app.toast = text;
+  clearTimeout(timers.toast);
+  timers.toast = setTimeout(function () { app.toast = ''; render(); }, 2000);
+}
+
+// 点确认 / 重试：先转加载圈，结果按手机外的「恢复结果」模拟
+function restore() {
+  app.dialog = 'loading';
+  clearTimeout(timers.load);
+  timers.load = setTimeout(function () {
+    if (app.result === '成功' && app.audit === AUDITS[1]) { app.dialog = ''; app.homeState = PEND; showToast('商户启用申请已提交，请等待审核'); }
+    else if (app.result === '成功') { app.dialog = ''; app.homeState = NONE; showToast('商户已启用，可重新交易'); }
+    else app.dialog = app.result === '失败' ? 'fail' : 'timeout';
+    render();
+  }, 1200);
+}
+
+// ‹ 返回：出栈一页
+function back() { if (app.stack.length > 1) app.stack.pop(); }
+
+function openTab(tab) { app.tab = tab; resetPhone(); if (tab === 'stores') app.stack = ['home', 'stores']; render(); }
+
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-tab],[data-state],[data-audit],[data-result],[data-go],[data-act]');
+  if (!t) return;
+  if (t.dataset.tab) return openTab(t.dataset.tab);
+  if (t.dataset.state) {
+    if (app.tab !== 'pos') { clearTimeout(timers.load); clearTimeout(timers.toast); app.homeState = t.dataset.state; app.dialog = ''; app.toast = ''; }
+    else app.posState = t.dataset.state;
+    return render();
+  }
+  if (t.dataset.audit) { app.audit = t.dataset.audit; return render(); }
+  if (t.dataset.result) { app.result = t.dataset.result; return render(); }
+  if (t.dataset.go) { app.stack.push(t.dataset.go); return render(); }
+  var a = t.dataset.act;
+  if (a === 'back') back();
+  if (a === 'close') app.stack = ['home'];
+  if (a === 'ask') app.dialog = 'confirm';
+  if (a === 'cancel') app.dialog = '';
+  if (a === 'restore') restore();
+  render();
+});
+
+// 支持 #pos / #home / #stores 直达页面，需求文档里按页面给链接
+var START = location.hash.slice(1);
+openTab(['pos', 'home', 'stores'].indexOf(START) >= 0 ? START : 'home');
+</script>
+</body>
+</html>
