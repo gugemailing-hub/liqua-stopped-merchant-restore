@@ -147,7 +147,7 @@
 </head>
 <body>
 
-<header><b>小POS无交易停用商户自动启用</b>原型 V2.4 · 更新 2026-10-15</header>
+<header><b>小POS无交易停用商户自动启用</b>原型 V2.5 · 更新 2026-10-15</header>
 
 <nav>
   <div class="grp">
@@ -208,9 +208,9 @@ function homeHtml() {
   var html = '';
   if (app.homeState === SELF || app.homeState === REJ) {
     html += '<div class="todo mark-add" data-act="ask"><span class="ii">i</span><span class="tx">' +
-            (app.homeState === SELF ? '当前商户已休眠，请点击激活' : '商户激活申请未通过，请重试或联系客服') + '</span><span class="ar">›</span></div>';
+            (app.homeState === SELF ? '当前商户已休眠，请点击启用' : '商户启用申请未通过，请重试或联系客服') + '</span><span class="ar">›</span></div>';
   } else if (app.homeState === PEND) {
-    html += '<div class="todo mark-add off"><span class="ii">i</span><span>商户激活申请审核中，通过后可重新交易</span></div>';
+    html += '<div class="todo mark-add off"><span class="ii">i</span><span>商户启用申请审核中，通过后可重新交易</span></div>';
   }
   html += '<div class="me"><div class="ava"></div><div class="who"><div class="nm">' + STORE.name + '</div>' +
           '<div class="no">' + STORE.no + '</div></div>' +
@@ -238,10 +238,7 @@ var PAGES = {
 };
 
 var DIALOGS = {
-  confirm: '<div class="msg">确认激活当前商户？</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">确认激活</div></div>',
-  loading: '<div class="msg"><div class="spin"></div>正在激活，请稍候</div>',
-  fail: '<div class="msg">激活失败，请稍后重试</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">重试</div></div>',
-  timeout: '<div class="msg">网络异常，请稍后重试</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">重试</div></div>'
+  loading: '<div class="msg"><div class="spin"></div>正在启用，请稍候</div>'
 };
 
 var NOTES = {
@@ -252,31 +249,30 @@ var NOTES = {
     '<li><b>已注销</b>：第 2 行改为「商户已注销」，原为「商户已注销或停用」。</li></ol>',
   home: '<h3>立刷公众号首页（改动页）</h3>' +
     '<ol><li>系统只查<b>当前门店子商户</b>的左端状态；切换门店后按新门店重新判断。</li>' +
-    '<li><b>首页门店栏、门店管理都不展示停用标签或停用状态</b>，商户看到的文案不出现「停用」字样，统一用「休眠 / 激活」。</li>' +
-    '<li>只有左端为无交易停用、正常停用时展示首页激活待办，按当前门店<b>最近一次启用申请</b>的状态展示：</li></ol>' +
+    '<li><b>首页门店栏、门店管理都不展示停用标签或停用状态</b>，商户看到的文案不出现「停用」字样，统一用「休眠 / 启用」。</li>' +
+    '<li>只有左端为无交易停用、正常停用时展示首页启用待办，按当前门店<b>最近一次启用申请</b>的状态展示：</li></ol>' +
     '<table><tr><th>当前门店子商户状态</th><th>首页待办</th></tr>' +
-    '<tr><td>左端为<b>无交易停用、正常停用</b>，无申请</td><td>「当前商户已休眠，请点击激活」→ 激活弹窗</td></tr>' +
-    '<tr><td>同上，申请审核中（审核开关开启时）</td><td>「商户激活申请审核中，通过后可重新交易」（不可点）</td></tr>' +
-    '<tr><td>同上，申请审核不通过</td><td>「商户激活申请未通过，请重试或联系客服」→ 点击弹激活窗，可再次申请，暂不限次数</td></tr>' +
+    '<tr><td>左端为<b>无交易停用、正常停用</b>，无申请</td><td>「当前商户已休眠，请点击启用」→ 直接提交启用申请</td></tr>' +
+    '<tr><td>同上，申请审核中（审核开关开启时）</td><td>「商户启用申请审核中，通过后可重新交易」（不可点）</td></tr>' +
+    '<tr><td>同上，申请审核不通过</td><td>「商户启用申请未通过，请重试或联系客服」→ 点击直接再次提交，暂不限次数</td></tr>' +
     '<tr><td>其它停用类型、停用类型为空、无停用</td><td>不展示</td></tr></table>' +
     '<h4>放在哪里（首页按现状还原，红色虚线框 = 新增）</h4>' +
     '<table><tr><th>元素</th><th>位置</th><th>为什么放这里</th></tr>' +
-    '<tr><td>激活待办</td><td>首页最顶部的待办条，<b>沿用现有待办条样式</b>，只新增文案</td>' +
+    '<tr><td>启用待办</td><td>首页最顶部的待办条，<b>沿用现有待办条样式</b>，只新增文案</td>' +
     '<td>现有首页已有这个位置（如「商户资料待完善」「您还未完成实名认证」），不新增组件</td></tr></table>' +
-    '<h4>激活弹窗</h4>' +
-    '<table><tr><th>阶段</th><th>弹窗内容</th><th>说明</th></tr>' +
-    '<tr><td>确认</td><td>确认激活当前商户？｜取消 / 确认激活</td><td>—</td></tr>' +
-    '<tr><td>加载中</td><td>加载圈 + 正在激活，请稍候</td><td>无按钮，防止重复提交</td></tr>' +
-    '<tr><td>成功（审核开关关闭）</td><td>关闭弹窗，toast「商户已激活，可重新交易」</td><td>待办消失</td></tr>' +
-    '<tr><td>成功（审核开关开启）</td><td>关闭弹窗，toast「商户激活申请已提交，请等待审核」</td><td>进入审核中：待办不可点，防止重复申请</td></tr>' +
-    '<tr><td>失败</td><td>激活失败，请稍后重试｜取消 / 重试</td><td>接口明确返回失败</td></tr>' +
-    '<tr><td>网络超时</td><td>网络异常，请稍后重试｜取消 / 重试</td><td>超过等待时长仍无结果；判定时长待定</td></tr></table>' +
-    '<ol><li>点「确认激活」：对当前门店的左端子商户，以及它<b>报备的银联商户号</b>（为停用时）发起商户状态变更工作流，发起人为商户。<b>按报备关系启用，不按路由关系</b>。</li>' +
+    '<h4>点击待办后的提示（不弹确认窗，直接提交）</h4>' +
+    '<table><tr><th>阶段</th><th>提示</th><th>说明</th></tr>' +
+    '<tr><td>提交中</td><td>加载圈 + 正在启用，请稍候</td><td>期间页面不可操作，防止重复提交</td></tr>' +
+    '<tr><td>成功（审核开关关闭）</td><td>toast「商户已启用，可重新交易」</td><td>待办消失</td></tr>' +
+    '<tr><td>成功（审核开关开启）</td><td>toast「商户启用申请已提交，请等待审核」</td><td>进入审核中：待办不可点，防止重复申请</td></tr>' +
+    '<tr><td>失败</td><td>toast「启用失败，请稍后重试」</td><td>待办保持原样，可再次点击</td></tr>' +
+    '<tr><td>网络超时</td><td>toast「网络异常，请稍后重试」</td><td>待办保持原样，可再次点击；判定时长待定</td></tr></table>' +
+    '<ol><li>点击待办后：对当前门店的左端子商户，以及它<b>报备的银联商户号</b>（为停用时）发起商户状态变更工作流，发起人为商户。<b>按报备关系启用，不按路由关系</b>。一次申请建 1 条工作流：流程名称「立刷电签商户恢复启用申请」，实体名称为左端子商户号，子实体名称「公众号自助启用」。</li>' +
     '<li><b>审核开关（默认关闭）</b>：由后端配置控制，不做页面。关闭时工作流自动审核通过，直接启用；开启时进入人工审核，<b>只设 1 道审核</b>，审核角色为审核专员4.0、风控运营岗，审核通过后启用。切换开关时，已进入人工审核的申请仍要审完。</li>' +
-    '<li><b>恢复功能总开关（默认开启）</b>：由后端配置控制，改开关不用发版。关闭时不展示激活待办（含审核中、审核不通过），后端不受理新的申请，开关关闭前已提交的申请按原流程审完。</li>' +
-    '<li><b>待办优先级</b>：激活待办排第 1，优先于现有其它待办。</li>' +
+    '<li><b>恢复功能总开关（默认开启）</b>：由后端配置控制，改开关不用发版。关闭时不展示启用待办（含审核中、审核不通过），后端不受理新的申请，开关关闭前已提交的申请按原流程审完。</li>' +
+    '<li><b>待办优先级</b>：启用待办排第 1，优先于现有其它待办。</li>' +
     '<li><b>识别记录</b>：左端启用成功后，给该子商户对应的客户号补 2 条（二要素鉴权、三要素鉴权），识别时间为启用成功时间 +1 秒。启用失败、审核不通过，都不补。</li>' +
-    '<li><b>重试要幂等</b>：超时时后台可能已经启用成功，重试遇到"已是启用"直接按成功返回；已有审核中的申请时直接返回审核中，不重复建工作流。关闭弹窗回首页时重新查询状态。</li></ol>' +
+    '<li><b>重试要幂等</b>：超时时后台可能已经启用成功，重试遇到"已是启用"直接按成功返回；已有审核中的申请时直接返回审核中，不重复建工作流。提交结束后重新查询首页状态。</li></ol>' +
     '<h4 class="pend">待确认 / 待优化</h4><ol>' +
     '<li>网络超时的判定时长：待定。</li>' +
     '<li>账号已注销、登录失败的商户：待优化，本期不处理。</li>' +
@@ -298,7 +294,7 @@ function renderBars() {
   var canApply = (app.homeState === SELF || app.homeState === REJ) && pageKey() === 'home';
   var html = app.tab === 'pos' ? bar('状态', POS_STATES, app.posState, 'state')
     : bar('当前门店', HOME_STATES, app.homeState, 'state') +
-      (canApply ? bar('审核开关', AUDITS, app.audit, 'audit') + bar('激活结果', RESULTS, app.result, 'result') : '');
+      (canApply ? bar('审核开关', AUDITS, app.audit, 'audit') + bar('启用结果', RESULTS, app.result, 'result') : '');
   document.getElementById('bars').innerHTML = html;
 }
 
@@ -340,14 +336,14 @@ function showToast(text) {
   timers.toast = setTimeout(function () { app.toast = ''; render(); }, 2000);
 }
 
-// 点确认 / 重试：先转加载圈，结果按手机外的「激活结果」模拟
+// 点待办：不弹确认窗，直接转加载圈，结果按手机外的「启用结果」模拟
 function restore() {
   app.dialog = 'loading';
   clearTimeout(timers.load);
   timers.load = setTimeout(function () {
-    if (app.result === '成功' && app.audit === AUDITS[1]) { app.dialog = ''; app.homeState = PEND; showToast('商户激活申请已提交，请等待审核'); }
-    else if (app.result === '成功') { app.dialog = ''; app.homeState = NONE; showToast('商户已激活，可重新交易'); }
-    else app.dialog = app.result === '失败' ? 'fail' : 'timeout';
+    if (app.result === '成功' && app.audit === AUDITS[1]) { app.dialog = ''; app.homeState = PEND; showToast('商户启用申请已提交，请等待审核'); }
+    else if (app.result === '成功') { app.dialog = ''; app.homeState = NONE; showToast('商户已启用，可重新交易'); }
+    else { app.dialog = ''; showToast(app.result === '失败' ? '启用失败，请稍后重试' : '网络异常，请稍后重试'); }
     render();
   }, 1200);
 }
@@ -372,7 +368,7 @@ document.addEventListener('click', function (e) {
   var a = t.dataset.act;
   if (a === 'back') back();
   if (a === 'close') app.stack = ['home'];
-  if (a === 'ask') app.dialog = 'confirm';
+  if (a === 'ask' && !app.dialog) restore();
   if (a === 'cancel') app.dialog = '';
   if (a === 'restore') restore();
   render();
