@@ -147,14 +147,13 @@
 </head>
 <body>
 
-<header><b>小POS无交易停用商户自动启用</b>原型 V2.3 · 更新 2026-10-15</header>
+<header><b>小POS无交易停用商户自动启用</b>原型 V2.4 · 更新 2026-10-15</header>
 
 <nav>
   <div class="grp">
-    <span class="glabel">现有页面改动 3 个</span>
+    <span class="glabel">现有页面改动 2 个</span>
     <button data-tab="pos">收款终端提示</button>
     <button data-tab="home">立刷公众号首页</button>
-    <button data-tab="stores">门店管理</button>
   </div>
 </nav>
 
@@ -171,10 +170,9 @@ var STORE = { name: '鑫隆便利店', no: 'YME000000001' };
 
 var SELF = '无交易 / 正常停用';
 var PEND = '无交易 / 正常停用（审核中）';
-var OTHER = '资料整改 / 风险 / 渠道整改 / 类型为空';
-var NONE = '无停用';
+var NONE = '其它停用类型 / 无停用';
 var REJ = '无交易 / 正常停用（审核不通过）';
-var HOME_STATES = [SELF, PEND, REJ, OTHER, NONE];
+var HOME_STATES = [SELF, PEND, REJ, NONE];
 var AUDITS = ['关闭（自动通过）', '开启（人工审核）'];
 var RESULTS = ['成功', '失败', '网络超时'];
 var POS_STATES = ['左端停用', '已注销'];
@@ -207,18 +205,16 @@ var GRID = [['store', '#4fa3ff,#2a74f5', '我的门店'], ['yen', '#3ed08a,#12a8
             ['bolt', '#5b9dff,#2563eb', '免费充电', '立刷专享'], ['bag', '#ff8a6b,#f2453d', '超值权益包']];
 
 function homeHtml() {
-  var stopped = app.homeState !== NONE;
   var html = '';
-  var tag = stopped ? '<span class="tag mark-add">商户已停用</span>' : '';
   if (app.homeState === SELF || app.homeState === REJ) {
     html += '<div class="todo mark-add" data-act="ask"><span class="ii">i</span><span class="tx">' +
-            (app.homeState === SELF ? '当前商户已停用，请点击恢复' : '商户启用申请未通过，请重试或联系客服') + '</span><span class="ar">›</span></div>';
+            (app.homeState === SELF ? '当前商户已休眠，请点击激活' : '商户激活申请未通过，请重试或联系客服') + '</span><span class="ar">›</span></div>';
   } else if (app.homeState === PEND) {
-    html += '<div class="todo mark-add off"><span class="ii">i</span><span>商户启用申请审核中，通过后可恢复启用</span></div>';
+    html += '<div class="todo mark-add off"><span class="ii">i</span><span>商户激活申请审核中，通过后可重新交易</span></div>';
   }
   html += '<div class="me"><div class="ava"></div><div class="who"><div class="nm">' + STORE.name + '</div>' +
-          '<div class="no">' + STORE.no + tag + '</div></div>' +
-          '<div class="add" data-go="stores">新增门店</div></div>';
+          '<div class="no">' + STORE.no + '</div></div>' +
+          '<div class="add">新增门店</div></div>';
   html += '<div class="quick">' + QUICK.map(function (q) {
     return '<div style="color:' + q[3] + '">' + ic(q[0], 'linear-gradient(135deg,' + q[1] + ')') + q[2] + '</div>';
   }).join('') + '</div>';
@@ -237,83 +233,52 @@ function homeHtml() {
   return html;
 }
 
-function storesHtml() {
-  var tag = app.homeState !== NONE ? '<span class="st mark-add">商户已停用</span>' : '';
-  return '<div class="seg"><div class="on">立刷电签</div><div>支付宝碰一下</div></div>' +
-    '<div class="scard cur"><span class="corner">当前</span><div class="l1"><span class="pt">云电签</span>' +
-    '<span class="sn">' + STORE.no + '</span><span class="dm">休眠</span></div>' +
-    '<p>门店名称：' + STORE.name + tag + '</p><p>注册时间：2023-09-13 19:39:49</p></div>' +
-    '<div class="scard"><div class="l1"><span class="nb">暂未绑定设备</span></div>' +
-    '<p>门店名称：惠民日用品店</p><p>注册时间：2023-11-24 11:54:54</p></div>';
-}
-
 var PAGES = {
-  home: { title: '立刷电签版', cls: 'home', render: homeHtml },
-  stores: { title: '门店管理', cls: 'stores', render: storesHtml, foot: '<div class="pfoot"><div>新增门店</div></div>' }
+  home: { title: '立刷电签版', cls: 'home', render: homeHtml }
 };
 
 var DIALOGS = {
-  confirm: '<div class="msg">确认恢复当前商户？</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">确认恢复</div></div>',
-  loading: '<div class="msg"><div class="spin"></div>正在恢复，请稍候</div>',
-  fail: '<div class="msg">恢复失败，请稍后重试</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">重试</div></div>',
+  confirm: '<div class="msg">确认激活当前商户？</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">确认激活</div></div>',
+  loading: '<div class="msg"><div class="spin"></div>正在激活，请稍候</div>',
+  fail: '<div class="msg">激活失败，请稍后重试</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">重试</div></div>',
   timeout: '<div class="msg">网络异常，请稍后重试</div><div class="ops"><div data-act="cancel">取消</div><div data-act="restore">重试</div></div>'
 };
 
 var NOTES = {
-  stores: '<h3>门店管理（改动页）</h3>' +
-    '<ol><li>入口：首页【新增门店】→ 门店管理。</li>' +
-    '<li>门店卡的<b>门店名称后面</b>新增「商户已停用」标签，与现有「休眠」标签同尺寸、红色；<b>只展示、不可点</b>。</li>' +
-    '<li>不放第 1 行：第 1 行已有产品标签 + 机身号 + 休眠，再加一个会压到当前门店右上角的「当前」角标；放门店名称后也不会被看成机具停用。</li>' +
-    '<li>判断口径与首页标签相同：该门店子商户的左端或路由的银联右端停用（任一停用类型）即展示。</li>' +
-    '<li><b>每张门店卡都标</b>，按各自门店判断，未绑定设备的门店卡同样放在门店名称后面；门店名称过长时标签自动换到下一行。</li>' +
-    '<li>本页不提供恢复操作，恢复只从首页待办进入，且只针对当前门店。</li></ol>' +
-    '',
   pos: '<h3>收款终端提示（改动页）</h3>' +
     '<ol><li>交易核心只区分「停用」「注销」两类提示，不按停用类型细分；响应码仍为 03。</li>' +
     '<li>终端屏第 2 行<b>只有 1 行</b>，<b>不滚动展示</b>（部分老机器不支持滚动）。</li>' +
-    '<li><b>左端停用</b>：第 2 行改为「商户停用，请至公众号处理」。</li>' +
+    '<li><b>左端停用</b>：第 2 行改为「商户停用，请至公众号查看」。</li>' +
     '<li><b>已注销</b>：第 2 行改为「商户已注销」，原为「商户已注销或停用」。</li></ol>',
   home: '<h3>立刷公众号首页（改动页）</h3>' +
-    '<ol><li>前置：商户登录立刷公众号，默认进入<b>上次切换到的门店</b>（现有逻辑）。</li>' +
-    '<li>系统只查<b>当前门店子商户</b>的左端状态，以及它路由的银联右端状态；<b>不处理其它门店</b>。切换门店后按新门店重新判断。</li>' +
-    '<li>停用时都显示「商户已停用」标签，<b>只展示、不可点击</b>；能自助恢复的才显示首页待办，恢复操作只从待办进入：</li></ol>' +
-    '<table><tr><th>当前门店子商户状态</th><th>商户已停用标签</th><th>首页待办</th></tr>' +
-    '<tr><td>左端为<b>无交易停用、正常停用</b></td><td>展示</td><td>「当前商户已停用，请点击恢复」→ 恢复弹窗</td></tr>' +
-    '<tr><td>同上，启用申请审核中（审核开关开启时）</td><td>展示</td><td>「商户启用申请审核中，通过后可恢复启用」（不可点）</td></tr>' +
-    '<tr><td>同上，启用申请审核不通过</td><td>展示</td><td>「商户启用申请未通过，请重试或联系客服」→ 点击弹恢复窗，可重新申请</td></tr>' +
-    '<tr><td>资料整改 / 风险 / 渠道整改停用、停用类型为空</td><td>展示</td><td>不展示</td></tr>' +
-    '<tr><td>左端启用、只有路由的银联右端停用</td><td>展示</td><td>不展示</td></tr>' +
-    '<tr><td>无停用</td><td>不展示</td><td>不展示</td></tr></table>' +
+    '<ol><li>系统只查<b>当前门店子商户</b>的左端状态；切换门店后按新门店重新判断。</li>' +
+    '<li><b>首页门店栏、门店管理都不展示停用标签或停用状态</b>，商户看到的文案不出现「停用」字样，统一用「休眠 / 激活」。</li>' +
+    '<li>只有左端为无交易停用、正常停用时展示首页激活待办，按当前门店<b>最近一次启用申请</b>的状态展示：</li></ol>' +
+    '<table><tr><th>当前门店子商户状态</th><th>首页待办</th></tr>' +
+    '<tr><td>左端为<b>无交易停用、正常停用</b>，无申请</td><td>「当前商户已休眠，请点击激活」→ 激活弹窗</td></tr>' +
+    '<tr><td>同上，申请审核中（审核开关开启时）</td><td>「商户激活申请审核中，通过后可重新交易」（不可点）</td></tr>' +
+    '<tr><td>同上，申请审核不通过</td><td>「商户激活申请未通过，请重试或联系客服」→ 点击弹激活窗，可再次申请，暂不限次数</td></tr>' +
+    '<tr><td>其它停用类型、停用类型为空、无停用</td><td>不展示</td></tr></table>' +
     '<h4>放在哪里（首页按现状还原，红色虚线框 = 新增）</h4>' +
     '<table><tr><th>元素</th><th>位置</th><th>为什么放这里</th></tr>' +
-    '<tr><td>恢复待办</td><td>首页最顶部的待办条，<b>沿用现有待办条样式</b>，只新增一种文案</td>' +
-    '<td>现有首页已有这个位置（如「商户资料待完善」「您还未完成实名认证」），且待办条与门店栏可同屏，不新增组件</td></tr>' +
-    '<tr><td>商户已停用标签</td><td>门店栏第 2 行，<b>机身号后面</b>；文案写「商户已停用」，不写「已停用」，避免被理解成机具停用</td>' +
-    '<td>第 1 行门店名长度不固定，右侧还有【新增门店】按钮，放第 1 行会把门店名挤成省略号，而商户要靠门店名确认当前是哪个门店；第 2 行只有机身号，后面空余多</td></tr></table>' +
-    '<h4>恢复弹窗</h4>' +
+    '<tr><td>激活待办</td><td>首页最顶部的待办条，<b>沿用现有待办条样式</b>，只新增文案</td>' +
+    '<td>现有首页已有这个位置（如「商户资料待完善」「您还未完成实名认证」），不新增组件</td></tr></table>' +
+    '<h4>激活弹窗</h4>' +
     '<table><tr><th>阶段</th><th>弹窗内容</th><th>说明</th></tr>' +
-    '<tr><td>确认</td><td>确认恢复当前商户？｜取消 / 确认恢复</td><td>—</td></tr>' +
-    '<tr><td>加载中</td><td>加载圈 + 正在恢复，请稍候</td><td>无按钮，防止重复提交</td></tr>' +
-    '<tr><td>成功（审核开关关闭）</td><td>关闭弹窗，toast「商户已启用，可重新交易」</td><td>标签与待办消失</td></tr>' +
-    '<tr><td>成功（审核开关开启）</td><td>关闭弹窗，toast「商户启用申请已提交，请等待审核」</td><td>进入审核中：待办不可点，防止重复申请</td></tr>' +
-    '<tr><td>失败</td><td>恢复失败，请稍后重试｜取消 / 重试</td><td>接口明确返回失败</td></tr>' +
+    '<tr><td>确认</td><td>确认激活当前商户？｜取消 / 确认激活</td><td>—</td></tr>' +
+    '<tr><td>加载中</td><td>加载圈 + 正在激活，请稍候</td><td>无按钮，防止重复提交</td></tr>' +
+    '<tr><td>成功（审核开关关闭）</td><td>关闭弹窗，toast「商户已激活，可重新交易」</td><td>待办消失</td></tr>' +
+    '<tr><td>成功（审核开关开启）</td><td>关闭弹窗，toast「商户激活申请已提交，请等待审核」</td><td>进入审核中：待办不可点，防止重复申请</td></tr>' +
+    '<tr><td>失败</td><td>激活失败，请稍后重试｜取消 / 重试</td><td>接口明确返回失败</td></tr>' +
     '<tr><td>网络超时</td><td>网络异常，请稍后重试｜取消 / 重试</td><td>超过等待时长仍无结果；判定时长待定</td></tr></table>' +
-    '<ol><li>点「确认恢复」：对当前门店的左端子商户，以及它<b>报备的银联商户号</b>（为停用时）发起商户状态变更工作流，发起人为商户。<b>按报备关系启用，不按路由关系</b>。</li>' +
-    '<li><b>审核开关（默认关闭）</b>：由后端配置控制，不做页面。关闭时工作流自动审核通过，直接启用；开启时流入人工审核，审核角色为审核专员4.0、风控运营岗，审核通过后启用。</li>' +
-    '<li>切换开关时，已进入人工审核的申请仍要审完，不随开关自动通过。</li>' +
-    '<li><b>恢复功能总开关（默认开启）</b>：由后端配置控制，改开关不用发版。关闭时所有停用类型都只展示「商户已停用」标签、不展示恢复待办（含审核中、审核不通过），表现同「资料整改 / 风险 / 渠道整改 / 类型为空」；后端不受理新的启用申请，开关关闭前已提交的申请按原流程审完。</li>' +
-    '<li><b>审核不通过</b>：首页待办显示「商户启用申请未通过，请重试或联系客服」，点击弹恢复窗可再次申请，暂不限制申请次数。</li>' +
-    '<li><b>待办优先级</b>：恢复相关待办（请点击恢复 / 审核中 / 未通过）排第 1，优先于现有其它待办。</li>' +
-    '<li>首页待办按当前门店<b>最近一次启用申请</b>的状态展示：无申请 → 请点击恢复；审核中 → 审核中（不可点）；审核不通过 → 审核不通过，直到商户重新申请或门店被启用。</li>' +
-    '<li><b>识别记录</b>：左端启用成功后，给该子商户对应的客户号补 2 条（二要素鉴权、三要素鉴权），识别时间晚于启用成功时间（启用成功时间 +1 秒）。启用失败、审核不通过，都不补。</li>' +
-    '<li><b>重试要幂等</b>：超时时后台可能已经启用成功，重试遇到"已是启用"直接按成功返回；已有审核中的申请时直接返回审核中，不重复建工作流。关闭弹窗回首页时重新查询状态。</li>' +
-    '<li>左端启用、只有路由的银联右端停用时（含同人挂靠、跨人挂靠、电签升级户），只展示标签，不展示待办。</li>' +
-    '<li>停用类型为空的不展示恢复入口。</li>' +
-    '<li>标签、待办文案不出现停用原因，不出现「风险」「申诉」字样。</li></ol>' +
+    '<ol><li>点「确认激活」：对当前门店的左端子商户，以及它<b>报备的银联商户号</b>（为停用时）发起商户状态变更工作流，发起人为商户。<b>按报备关系启用，不按路由关系</b>。</li>' +
+    '<li><b>审核开关（默认关闭）</b>：由后端配置控制，不做页面。关闭时工作流自动审核通过，直接启用；开启时进入人工审核，<b>只设 1 道审核</b>，审核角色为审核专员4.0、风控运营岗，审核通过后启用。切换开关时，已进入人工审核的申请仍要审完。</li>' +
+    '<li><b>恢复功能总开关（默认开启）</b>：由后端配置控制，改开关不用发版。关闭时不展示激活待办（含审核中、审核不通过），后端不受理新的申请，开关关闭前已提交的申请按原流程审完。</li>' +
+    '<li><b>待办优先级</b>：激活待办排第 1，优先于现有其它待办。</li>' +
+    '<li><b>识别记录</b>：左端启用成功后，给该子商户对应的客户号补 2 条（二要素鉴权、三要素鉴权），识别时间为启用成功时间 +1 秒。启用失败、审核不通过，都不补。</li>' +
+    '<li><b>重试要幂等</b>：超时时后台可能已经启用成功，重试遇到"已是启用"直接按成功返回；已有审核中的申请时直接返回审核中，不重复建工作流。关闭弹窗回首页时重新查询状态。</li></ol>' +
     '<h4 class="pend">待确认 / 待优化</h4><ol>' +
     '<li>网络超时的判定时长：待定。</li>' +
-    '<li>商户已停用标签本期只展示；点击跳转（如进在线客服）待优化。</li>' +
-    '<li>资料整改停用的补资料页：立刷公众号目前没有，本期不做，待优化。</li>' +
     '<li>账号已注销、登录失败的商户：待优化，本期不处理。</li>' +
     '</ol>'
 };
@@ -333,13 +298,13 @@ function renderBars() {
   var canApply = (app.homeState === SELF || app.homeState === REJ) && pageKey() === 'home';
   var html = app.tab === 'pos' ? bar('状态', POS_STATES, app.posState, 'state')
     : bar('当前门店', HOME_STATES, app.homeState, 'state') +
-      (canApply ? bar('审核开关', AUDITS, app.audit, 'audit') + bar('恢复结果', RESULTS, app.result, 'result') : '');
+      (canApply ? bar('审核开关', AUDITS, app.audit, 'audit') + bar('激活结果', RESULTS, app.result, 'result') : '');
   document.getElementById('bars').innerHTML = html;
 }
 
 function renderPos() {
   var l2;
-  if (app.posState === '左端停用') l2 = '<div class="l2 mark-mod one">商户停用，请至公众号处理</div>';
+  if (app.posState === '左端停用') l2 = '<div class="l2 mark-mod one">商户停用，请至公众号查看</div>';
   else if (app.posState === '已注销') l2 = '<div class="l2 mark-mod">商户已注销</div>';
   else l2 = '<div class="l2">无效商户</div>';
   return '<div class="pos"><div class="screen"><div class="head">消费</div><div class="x">✕</div>' +
@@ -375,13 +340,13 @@ function showToast(text) {
   timers.toast = setTimeout(function () { app.toast = ''; render(); }, 2000);
 }
 
-// 点确认 / 重试：先转加载圈，结果按手机外的「恢复结果」模拟
+// 点确认 / 重试：先转加载圈，结果按手机外的「激活结果」模拟
 function restore() {
   app.dialog = 'loading';
   clearTimeout(timers.load);
   timers.load = setTimeout(function () {
-    if (app.result === '成功' && app.audit === AUDITS[1]) { app.dialog = ''; app.homeState = PEND; showToast('商户启用申请已提交，请等待审核'); }
-    else if (app.result === '成功') { app.dialog = ''; app.homeState = NONE; showToast('商户已启用，可重新交易'); }
+    if (app.result === '成功' && app.audit === AUDITS[1]) { app.dialog = ''; app.homeState = PEND; showToast('商户激活申请已提交，请等待审核'); }
+    else if (app.result === '成功') { app.dialog = ''; app.homeState = NONE; showToast('商户已激活，可重新交易'); }
     else app.dialog = app.result === '失败' ? 'fail' : 'timeout';
     render();
   }, 1200);
@@ -390,7 +355,7 @@ function restore() {
 // ‹ 返回：出栈一页
 function back() { if (app.stack.length > 1) app.stack.pop(); }
 
-function openTab(tab) { app.tab = tab; resetPhone(); if (tab === 'stores') app.stack = ['home', 'stores']; render(); }
+function openTab(tab) { app.tab = tab; resetPhone(); render(); }
 
 document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-tab],[data-state],[data-audit],[data-result],[data-go],[data-act]');
@@ -413,9 +378,9 @@ document.addEventListener('click', function (e) {
   render();
 });
 
-// 支持 #pos / #home / #stores 直达页面，需求文档里按页面给链接
+// 支持 #pos / #home 直达页面，需求文档里按页面给链接
 var START = location.hash.slice(1);
-openTab(['pos', 'home', 'stores'].indexOf(START) >= 0 ? START : 'home');
+openTab(['pos', 'home'].indexOf(START) >= 0 ? START : 'home');
 </script>
 </body>
 </html>
